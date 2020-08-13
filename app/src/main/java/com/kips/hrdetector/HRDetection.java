@@ -31,36 +31,30 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class HRDetection extends Activity {
 
-    private static final String TAG = "HeartRateMonitor";
-    private static final AtomicBoolean processing = new AtomicBoolean(false);
-
-    private static SurfaceHolder previewHolder = null;
-    private static Camera camera = null;
+    private final String TAG = "HeartRateMonitor";
+    private final AtomicBoolean processing = new AtomicBoolean(false);
+    private final int averageArraySize = 4;
+    private final int[] averageArray = new int[averageArraySize];
+    private final int beatsArraySize = 3;
+    private final int[] beatsArray = new int[beatsArraySize];
+    private SurfaceHolder previewHolder = null;
+    private Camera camera = null;
     @SuppressLint("StaticFieldLeak")
-    private static View image = null;
+    private View image = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView text = null;
+    private TextView text = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView infoText = null;
+    private TextView infoText = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView imgavgtxt = null;
+    private TextView imgavgtxt = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView rollavgtxt = null;
+    private TextView rollavgtxt = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView stresslv = null;
+    private TextView stresslv = null;
     @SuppressLint("StaticFieldLeak")
-    private static TextView averagebpm = null;
-
-    private static Button startbutt;
-    private static WakeLock wakeLock = null;
-
-    private static int averageIndex = 0;
-    private static final int averageArraySize = 4;
-    private static final int[] averageArray = new int[averageArraySize];
-
-    public static enum TYPE {
-        GREEN, RED
-    };
+    private TextView averagebpm = null;
+    private Button startbutt;
+    private WakeLock wakeLock = null;
 
     private static TYPE currentType = TYPE.GREEN;
 
@@ -68,86 +62,13 @@ public class HRDetection extends Activity {
         return currentType;
     }
 
-    private static int beatsIndex = 0;
-    private static final int beatsArraySize = 3;
-    private static final int[] beatsArray = new int[beatsArraySize];
-    private static double beats = 0;
-    private static long startTime = 0;
-    private static Context mContext;
-
-    private static DatabaseHelper dbHRMonitor;
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_h_r_detection);
-
-        HRDetection.mContext = getApplicationContext();
-        SurfaceView preview = (SurfaceView) findViewById(R.id.preview);
-        previewHolder = preview.getHolder();
-        previewHolder.addCallback(surfaceCallback);
-        previewHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-        image = findViewById(R.id.image);
-        infoText = findViewById(R.id.textProsesHRM);
-        text = findViewById(R.id.TextHRDetector);
-        imgavgtxt = findViewById(R.id.img_avg_text);
-        rollavgtxt = findViewById(R.id.rollavg_text);
-        averagebpm = findViewById(R.id.avgBPM);
-        stresslv = findViewById(R.id.stressLevel);
-//        startbutt = findViewById(R.id.startbutt);
-//
-//        startbutt.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//            }
-//        });
-
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNotDimScreen");
-
-        dbHRMonitor = new DatabaseHelper(getBaseContext());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        wakeLock.acquire(10*60*1000L /*10 minutes*/);
-
-        camera = Camera.open();
-
-        startTime = System.currentTimeMillis();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onPause() {
-        super.onPause();
-
-        camera.setPreviewCallback(null);
-        camera.stopPreview();
-        camera.release();
-        camera = null;
-    }
-
-    private static PreviewCallback previewCallback = new PreviewCallback() {
+    private int averageIndex = 0;
+    private int beatsIndex = 0;
+    private double beats = 0;
+    private long startTime = 0;
+    private Context mContext;
+    private DatabaseHelper dbHRMonitor;
+    private PreviewCallback previewCallback = new PreviewCallback() {
 
         /**
          * {@inheritDoc}
@@ -189,8 +110,8 @@ public class HRDetection extends Activity {
             int rollingAverage = (averageArrayCnt > 0) ? (averageArrayAvg / averageArrayCnt) : 0;
             TYPE newType = currentType;
 
-            imgavgtxt.setText("image average:"+ Integer.toString(imgAvg));
-            rollavgtxt.setText("rolling average:"+ Integer.toString(rollingAverage));
+            imgavgtxt.setText("image average:" + imgAvg);
+            rollavgtxt.setText("rolling average:" + rollingAverage);
             if (imgAvg < rollingAverage) {
                 newType = TYPE.RED;
                 if (newType != currentType) {
@@ -243,52 +164,45 @@ public class HRDetection extends Activity {
                 int beatsAvg = (beatsArrayAvg / beatsArrayCnt);
                 text.setText(String.valueOf(dpm));
                 averagebpm.setText(String.valueOf(beatsAvg));
-                if (beatsAvg > 60 && beatsAvg < 70){
+                if (beatsAvg > 60 && beatsAvg < 70) {
                     stresslv.setText("RILEKS");
                     stresslv.setTextColor(Color.BLUE);
                     averagebpm.setTextColor(Color.BLUE);
-                }
-                else if(beatsAvg > 70 && beatsAvg < 90){
+                } else if (beatsAvg > 70 && beatsAvg < 90) {
                     stresslv.setText("Tenang");
                     stresslv.setTextColor(Color.GREEN);
                     averagebpm.setTextColor(Color.GREEN);
-                }
-                else if(beatsAvg > 90 && beatsAvg < 100){
+                } else if (beatsAvg > 90 && beatsAvg < 100) {
                     stresslv.setText("Cemas");
                     stresslv.setTextColor(Color.YELLOW);
                     averagebpm.setTextColor(Color.YELLOW);
-                } else if(beatsAvg > 100){
+                } else if (beatsAvg > 100) {
                     stresslv.setText("Stres");
                     stresslv.setTextColor(Color.RED);
                     averagebpm.setTextColor(Color.RED);
                 }
-                Log.d(TAG, "index: "+ beatsIndex);
+                Log.d(TAG, "index: " + beatsIndex);
                 startTime = System.currentTimeMillis();
                 beats = 0;
 
                 // Jika sudah 3 kita masukkan ke DB
-                if (beatsIndex == 3){
+                if (beatsIndex == 3) {
                     String setStresslv = stresslv.getText().toString();
                     Integer avgbpm = beatsAvg;
-                    Log.d(TAG, "DATABASE NAME : "+ dbHRMonitor.getDatabaseName()+" stresslv = "+setStresslv);
-                    String value="Hello world";
-                    Intent i = new Intent(HRDetection.mContext, Result.class);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    Log.d(TAG, "DATABASE NAME : " + dbHRMonitor.getDatabaseName() + " stresslv = " + setStresslv);
+                    String value = "Hello world";
+                    Intent i = new Intent(HRDetection.this, Result.class);
+                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     i.putExtra("avgbpm", beatsAvg);
                     i.putExtra("stresslv", setStresslv);
                     i.putExtra("bpmdata", beatsArray);
-                    HRDetection.mContext.startActivity(i);
+                    startActivity(i);
                 }
             }
             processing.set(false);
         }
     };
-
-    public static Context getAppContext() {
-        return HRDetection.mContext;
-    }
-
-    private static SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
+    private SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
 
         /**
          * {@inheritDoc}
@@ -328,7 +242,78 @@ public class HRDetection extends Activity {
         }
     };
 
-    private static Camera.Size getSmallestPreviewSize(int width, int height, Camera.Parameters parameters) {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressLint("InvalidWakeLockTag")
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_h_r_detection);
+
+        SurfaceView preview = (SurfaceView) findViewById(R.id.preview);
+        previewHolder = preview.getHolder();
+        previewHolder.addCallback(surfaceCallback);
+        previewHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        image = findViewById(R.id.image);
+        infoText = findViewById(R.id.textProsesHRM);
+        text = findViewById(R.id.TextHRDetector);
+        imgavgtxt = findViewById(R.id.img_avg_text);
+        rollavgtxt = findViewById(R.id.rollavg_text);
+        averagebpm = findViewById(R.id.avgBPM);
+        stresslv = findViewById(R.id.stressLevel);
+//        startbutt = findViewById(R.id.startbutt);
+//
+//        startbutt.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//            }
+//        });
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNotDimScreen");
+
+        dbHRMonitor = new DatabaseHelper(getBaseContext());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        camera.setPreviewCallback(null);
+        camera.stopPreview();
+        camera.release();
+        camera = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/);
+
+        camera = Camera.open();
+
+        startTime = System.currentTimeMillis();
+    }
+
+    private Camera.Size getSmallestPreviewSize(int width, int height, Camera.Parameters parameters) {
         Camera.Size result = null;
 
         for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
@@ -345,5 +330,9 @@ public class HRDetection extends Activity {
         }
 
         return result;
+    }
+
+    public enum TYPE {
+        GREEN, RED
     }
 }
